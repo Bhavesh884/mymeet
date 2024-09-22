@@ -3,6 +3,7 @@ import React, { useState } from "react";
 const CreateMeeting = () => {
   const [meetingType, setMeetingType] = useState(null);
   const [meetingDate, setMeetingDate] = useState("");
+  const [meetingEndDate, setMeetingEndDate] = useState("");
   const [roomId, setRoomId] = useState("");
 
   const handleCreateInstant = () => {
@@ -12,7 +13,11 @@ const CreateMeeting = () => {
 
   const handleScheduleMeeting = () => {
     const scheduledRoomId = roomId || Math.random().toString(36).substring(7);
-    const meeting = { roomId: scheduledRoomId, date: meetingDate };
+    const meeting = {
+      roomId: scheduledRoomId,
+      date: meetingDate,
+      endTime: meetingEndDate,
+    };
     const scheduledMeetings =
       JSON.parse(localStorage.getItem("scheduledMeetings")) || [];
     scheduledMeetings.push(meeting);
@@ -23,6 +28,7 @@ const CreateMeeting = () => {
     alert(`Meeting scheduled with ID: ${scheduledRoomId}`);
     setMeetingType(null);
     setMeetingDate("");
+    setMeetingEndDate("");
     setRoomId("");
   };
 
@@ -58,6 +64,12 @@ const CreateMeeting = () => {
             type="datetime-local"
             value={meetingDate}
             onChange={(e) => setMeetingDate(e.target.value)}
+            className="mb-4 p-2 border border-gray-300 rounded"
+          />
+          <input
+            type="datetime-local"
+            value={meetingEndDate}
+            onChange={(e) => setMeetingEndDate(e.target.value)}
             className="mb-4 p-2 border border-gray-300 rounded"
           />
           <button

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const JoinMeeting = () => {
   const [roomId, setRoomId] = useState("");
   const [scheduledMeetings, setScheduledMeetings] = useState(
     JSON.parse(localStorage.getItem("scheduledMeetings")) || []
   );
+  const navigate = useNavigate();
 
   useEffect(() => {
     const cleanUpOldMeetings = () => {
@@ -13,11 +15,15 @@ const JoinMeeting = () => {
         const meetingTime = new Date(meeting.date);
         return now < new Date(meetingTime.getTime() + 30 * 60000); // Keep meetings within 30 minutes after their scheduled time
       });
-      setScheduledMeetings(updatedMeetings);
-      localStorage.setItem(
-        "scheduledMeetings",
-        JSON.stringify(updatedMeetings)
-      );
+
+      // Only update state if there are changes
+      if (updatedMeetings.length !== scheduledMeetings.length) {
+        setScheduledMeetings(updatedMeetings);
+        localStorage.setItem(
+          "scheduledMeetings",
+          JSON.stringify(updatedMeetings)
+        );
+      }
     };
 
     cleanUpOldMeetings();
@@ -32,10 +38,10 @@ const JoinMeeting = () => {
       const now = new Date();
       const meetingTime = new Date(meeting.date);
       if (now >= meetingTime) {
-        startMeeting(room);
+        startMeeting(room, meeting.endTime);
       } else {
         alert(
-          "The meeting is scheduled for ${meetingTime.toLocaleString()}. Please wait until the meeting starts."
+          `The meeting is scheduled for ${meetingTime.toLocaleString()}. Please wait until the meeting starts.`
         );
       }
     } else {
@@ -43,51 +49,25 @@ const JoinMeeting = () => {
     }
   };
 
-  const startMeeting = (room) => {
-    const domain = "meet.ultraxpert.in";
-    const options = {
-      roomName: room,
-      width: "100%",
-      height: 600,
-      parentNode: document.querySelector("#jitsi-container"),
-      configOverwrite: {},
-      interfaceConfigOverwrite: {
-        TOOLBAR_BUTTONS: [
-          "microphone",
-          "camera",
-          "closedcaptions",
-          "desktop",
-          "embedmeeting",
-          "fullscreen",
-          "fodeviceselection",
-          "hangup",
-          "profile",
-          "chat",
-          "recording",
-          "livestreaming",
-          "etherpad",
-          "sharedvideo",
-          "settings",
-          "raisehand",
-          "videoquality",
-          "filmstrip",
-          "invite",
-          "feedback",
-          "stats",
-          "shortcuts",
-          "tileview",
-          "videobackgroundblur",
-          "download",
-          "help",
-          "mute-everyone",
-        ],
-      },
-    };
-    const api = new window.JitsiMeetExternalAPI(domain, options);
+  const startMeeting = (room, endTime) => {
+    const jitsiUrl = `https://meet.ultraxpert.in/${room}`;
+    const win = window.open(jitsiUrl, "_blank");
 
-    api.addEventListener("readyToClose", () => {
-      window.location.href = "/";
-    });
+    if (win) {
+      win.addEventListener("beforeunload", () => {
+        // This will execute when the user closes the Jitsi Meet tab/window
+        window.location.href = "https://www.ultraxpert.in"; // Redirect to your app's home route
+      });
+    }
+
+    if (endTime) {
+      const endTimeDate = new Date(endTime);
+      const now = new Date();
+      const timeUntilEnd = endTimeDate - now;
+      setTimeout(() => {
+        win.close(); // Close the Jitsi Meet tab/window after endTime
+      }, timeUntilEnd);
+    }
   };
 
   return (
@@ -111,7 +91,8 @@ const JoinMeeting = () => {
         {scheduledMeetings.map((meeting, index) => (
           <div key={index} className="mb-4 p-2 border border-gray-300 rounded">
             <p>Room ID: {meeting.roomId}</p>
-            <p>Date: {new Date(meeting.date).toLocaleString()}</p>
+            <p>Start Time: {new Date(meeting.date).toLocaleString()}</p>
+            <p>End Time: {new Date(meeting.endTime).toLocaleString()}</p>
             <button
               className="bg-blue-500 text-white px-2 py-1 rounded mt-2"
               onClick={() => handleJoin(meeting.roomId)}
@@ -121,8 +102,6 @@ const JoinMeeting = () => {
           </div>
         ))}
       </div>
-
-      <div id="jitsi-container" className="mt-4"></div>
     </div>
   );
 };
